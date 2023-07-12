@@ -1,4 +1,4 @@
-use deadpool_postgres::{Config, Pool};
+use deadpool_postgres::{Pool, Runtime};
 use tokio_postgres::NoTls;
 use tokio_postgres_migration::Migration;
 
@@ -13,26 +13,25 @@ const SCRIPTS_UP: [(&str, &str); 2] = [
     ),
 ];
 
-fn create_config() -> Config {
-    let mut cfg = Config::new();
-    if let Ok(host) = std::env::var("PG_HOST") {
-        cfg.host = Some(host);
+#[derive(serde::Deserialize, serde::Serialize)]
+struct Config {
+    pg: deadpool_postgres::Config,
+}
+
+impl Config {
+    pub fn from_env() -> Result<Self, config::ConfigError> {
+        let cfg = config::Config::builder()
+            .add_source(config::Environment::default().separator("_"))
+            .build()?;
+        cfg.try_deserialize()
     }
-    if let Ok(dbname) = std::env::var("PG_DBNAME") {
-        cfg.dbname = Some(dbname);
-    }
-    if let Ok(user) = std::env::var("PG_USER") {
-        cfg.user = Some(user);
-    }
-    if let Ok(password) = std::env::var("PG_PASSWORD") {
-        cfg.password = Some(password);
-    }
-    cfg
 }
 
 pub fn create_pool() -> Pool {
-    create_config()
-        .create_pool(NoTls)
+    let config = Config::from_env().unwrap();
+    config
+        .pg
+        .create_pool(Some(Runtime::Tokio1), NoTls)
         .expect("couldn't create postgres pool")
 }
 

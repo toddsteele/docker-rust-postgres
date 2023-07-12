@@ -17,13 +17,13 @@ async fn list_users(pool: web::Data<Pool>) -> HttpResponse {
         Ok(list) => HttpResponse::Ok().json(list),
         Err(err) => {
             log::debug!("unable to fetch users: {:?}", err);
-            return HttpResponse::InternalServerError().json("unable to fetch users");
+            HttpResponse::InternalServerError().json("unable to fetch users")
         }
     }
 }
 
 fn address() -> String {
-    std::env::var("ADDRESS").unwrap_or_else(|_| "127.0.0.1:8000".into())
+    std::env::var("ADDRESS").unwrap_or_else(|_| "0.0.0.0:8000".into())
 }
 
 #[actix_web::main]
